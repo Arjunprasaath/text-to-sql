@@ -1,0 +1,19 @@
+[project]
+name = "text-to-sql"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "accelerate>=1.10.1",
+    "nltk>=3.9.2",
+    "torch>=2.8.0",
+    "transformers>=4.57.0",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.30.1",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.6",
+]
