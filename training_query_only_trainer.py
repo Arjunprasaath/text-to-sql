@@ -138,7 +138,7 @@ def main():
     # Hyperparameters
     max_length = 512
     batch_size = 32
-    gradient_accumulation_steps = 2  # Effective batch size = 64
+    gradient_accumulation_steps = 4  # Effective batch size = 64
     learning_rate = 5e-5
     weight_decay = 0.01
     max_steps = 10000
@@ -195,7 +195,7 @@ def main():
         max_grad_norm=1.0,  # Gradient clipping
 
         # Evaluation and logging
-        evaluation_strategy="steps",
+        eval_strategy="steps",
         eval_steps=eval_steps,
         logging_steps=logging_steps,
         logging_dir=f"{output_dir}/logs",
