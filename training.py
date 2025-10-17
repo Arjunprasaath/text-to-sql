@@ -401,7 +401,7 @@ def main():
     dev_dataset = SpiderDataset(dev_data_path, table_path, tokenizer, max_length)
 
     train_dataloader = DataLoader(training_dataset, batch_size = batch_size, shuffle = True)
-    dev_dataloader = DataLoader(dev_dataset, batch_size = batch_size, shuffle = True)
+    dev_dataloader = DataLoader(dev_dataset, batch_size = batch_size, shuffle = False)
 
     optimizer = Adafactor(model.parameters(), lr = base_lr, scale_parameter = False, relative_step = False, warmup_init = False)
 

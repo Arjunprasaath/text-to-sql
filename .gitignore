@@ -5,6 +5,7 @@ build/
 dist/
 wheels/
 *.egg-info
+*.pyc
 
 # Virtual environments
 .venv
@@ -13,3 +14,4 @@ wheels/
 spider_data/
 trained_model/
 spider/
+*__pycache__/

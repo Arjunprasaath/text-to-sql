@@ -68,13 +68,12 @@ class QueryOnlySpiderDataset(Dataset):
     def _create_input_prompt(self, schema: str, question: str) -> str:
         """Create input prompt without planning (Query-only)."""
         prompt = f"""Given the database schema and question, generate the SQL query.
+        ### Question:
+        Schema: {schema}
+        Question: {question}
 
-### Question:
-Schema: {schema}
-Question: {question}
-
-### Response:
-"""
+        ### Response:
+        """
         return prompt
 
     def _create_response(self, gold_sql: str) -> str:
@@ -232,7 +231,7 @@ def main():
     dev_data_path = "spider_data/dev.json"
     table_path = "spider_data/tables.json"
     model_path = "/projects/p32722/Models/Qwen2.5-0.5B-Instruct"  # Update this path
-    output_dir = "./trained_model_query_only/"
+    output_dir = "/projects/p32722/Models/text2sql/trained_model_query_only/"
 
     # Create output directory
     output_path = Path(output_dir)
@@ -338,7 +337,7 @@ def main():
 
     # Final save
     print("\nTraining completed! Saving final model...")
-    final_path = output_path / "final_model_query_only"
+    final_path = output_path / "final_model_query_only" + model_path.split('/')[-1]
     final_path.mkdir(parents=True, exist_ok=True)
 
     model.save_pretrained(final_path)
