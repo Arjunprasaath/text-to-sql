@@ -68,12 +68,13 @@ class QueryOnlySpiderDataset(Dataset):
     def _create_input_prompt(self, schema: str, question: str) -> str:
         """Create input prompt without planning (Query-only)."""
         prompt = f"""Given the database schema and question, generate the SQL query.
-        ### Question:
-        Schema: {schema}
-        Question: {question}
 
-        ### Response:
-        """
+### Question:
+Schema: {schema}
+Question: {question}
+
+### Response:
+"""
         return prompt
 
     def _create_response(self, gold_sql: str) -> str:
