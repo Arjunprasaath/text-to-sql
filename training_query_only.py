@@ -10,7 +10,7 @@ import argparse
 from tqdm import tqdm
 from pathlib import Path
 from torch.utils.data import DataLoader, Dataset
-from transformers import AutoModelForCausalLM, AutoTokenizer, Adafactor
+from transformers import AutoModelForCausalLM, AutoTokenizer, get_cosine_schedule_with_warmup
 
 
 class QueryOnlySpiderDataset(Dataset):
@@ -123,40 +123,7 @@ Question: {question}
         }
 
 
-class SlantedTriangularScheduler:
-    """Slanted triangular learning rate scheduler from the paper."""
-
-    def __init__(self, optimizer, base_lr, total_steps, warmup_steps, cut_frac=0.1, ratio=32):
-        self.optimizer = optimizer
-        self.base_lr = base_lr
-        self.total_steps = total_steps
-        self.warmup_steps = warmup_steps
-        self.cut_frac = cut_frac
-        self.ratio = ratio
-        self.current_step = 0
-
-    def get_lr(self):
-        """Calculate learning rate for current step."""
-        if self.current_step < self.warmup_steps:
-            # Warmup phase: linear increase
-            p = self.current_step / self.warmup_steps
-        else:
-            # Cooldown phase: slanted triangular decay
-            cooldown_steps = self.total_steps - self.warmup_steps
-            steps_since_warmup = self.current_step - self.warmup_steps
-            p = 1.0 - (steps_since_warmup / cooldown_steps)
-
-        # Slanted triangular formula
-        lr = self.base_lr * (1 + p * (self.ratio - 1)) / self.ratio
-        return lr
-
-    def step(self):
-        """Update learning rate."""
-        lr = self.get_lr()
-        for param_group in self.optimizer.param_groups:
-            param_group['lr'] = lr
-        self.current_step += 1
-        return lr
+# Removed SlantedTriangularScheduler - using cosine scheduler instead
 
 
 def load_model_and_tokenizer(model_path):
@@ -189,11 +156,10 @@ def train_step(model, batch, optimizer, scheduler, device, gradient_accumulation
     if (step + 1) % gradient_accumulation_steps == 0:
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
-        current_lr = scheduler.step()
+        scheduler.step()
         optimizer.zero_grad()
-    else:
-        current_lr = scheduler.get_lr()
 
+    current_lr = optimizer.param_groups[0]['lr']
     return loss.item() * gradient_accumulation_steps, current_lr
 
 
@@ -217,10 +183,11 @@ def evaluate(model, dataloader, device, max_eval_batches=None):
 
 
 def main():
-    # Paper configuration for Query-only experiments
+    # Updated configuration with AdamW and Cosine scheduler
     batch_size = 32  # Effective batch size of 64 with gradient accumulation
     gradient_accumulation_steps = 2
-    base_lr = 1e-4
+    base_lr = 5e-5  # Slightly lower LR for AdamW
+    weight_decay = 0.01  # Add weight decay for regularization
     total_steps = 10000
     warmup_steps = 1000
     eval_every = 500
@@ -251,30 +218,31 @@ def main():
     train_dataloader = DataLoader(training_dataset, batch_size=batch_size, shuffle=True)
     dev_dataloader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=False)
 
-    # Optimizer: AdaFactor as per paper
-    optimizer = Adafactor(
+    # Optimizer: AdamW with weight decay
+    optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=base_lr,
-        scale_parameter=False,
-        relative_step=False,
-        warmup_init=False
+        weight_decay=weight_decay,
+        betas=(0.9, 0.999),
+        eps=1e-8
     )
 
-    # Setup slanted triangular scheduler
-    scheduler = SlantedTriangularScheduler(
-        optimizer=optimizer,
-        base_lr=base_lr,
-        total_steps=total_steps,
-        warmup_steps=warmup_steps
+    # Setup cosine scheduler with warmup
+    scheduler = get_cosine_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=warmup_steps,
+        num_training_steps=total_steps
     )
 
     # Training loop
     print(f"\n{'='*70}")
     print(f"QUERY-ONLY TRAINING (No Plans)")
+    print(f"Using AdamW optimizer with Cosine scheduler")
     print(f"Starting training for {total_steps} steps")
     print(f"Batch size: {batch_size}, Gradient accumulation: {gradient_accumulation_steps}")
     print(f"Effective batch size: {batch_size * gradient_accumulation_steps}")
-    print(f"Base LR: {base_lr}, Warmup steps: {warmup_steps}")
+    print(f"Base LR: {base_lr}, Weight decay: {weight_decay}")
+    print(f"Warmup steps: {warmup_steps}")
     print(f"Evaluation every {eval_every} steps")
     print(f"{'='*70}\n")
 
