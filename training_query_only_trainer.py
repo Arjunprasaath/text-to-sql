@@ -6,6 +6,7 @@ Uses the high-level Trainer API for cleaner, more maintainable code.
 
 import json
 import torch
+import wandb
 from pathlib import Path
 from typing import Dict
 from torch.utils.data import Dataset
@@ -154,6 +155,26 @@ def main():
     print(f"QUERY-ONLY TRAINING using Transformers Trainer API")
     print(f"{'='*70}\n")
 
+    # Initialize wandb
+    wandb.init(
+        project="text-to-sql-training",
+        name=f"query_only_trainer_{model_name}_bs{batch_size}",
+        config={
+            "model_name": model_name,
+            "batch_size": batch_size,
+            "gradient_accumulation_steps": gradient_accumulation_steps,
+            "effective_batch_size": batch_size * gradient_accumulation_steps,
+            "learning_rate": learning_rate,
+            "weight_decay": weight_decay,
+            "max_steps": max_steps,
+            "warmup_steps": warmup_steps,
+            "max_length": max_length,
+            "optimizer": "AdamW",
+            "scheduler": "cosine",
+            "training_type": "query_only_trainer_api"
+        }
+    )
+
     # Load tokenizer
     print("Loading tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(model_path, padding_side="left")
@@ -217,7 +238,7 @@ def main():
         dataloader_pin_memory=True,
 
         # Misc
-        report_to="none",  # Disable wandb/tensorboard
+        report_to="wandb",  # Enable wandb logging
         remove_unused_columns=False,
         seed=42,
     )
@@ -268,6 +289,14 @@ def main():
     print(f"  Best checkpoint: {trainer.state.best_model_checkpoint}")
     print(f"  Best eval loss: {trainer.state.best_metric:.4f}")
     print(f"{'='*70}\n")
+
+    # Log final summary to wandb
+    wandb.run.summary["best_eval_loss"] = trainer.state.best_metric
+    wandb.run.summary["best_checkpoint"] = trainer.state.best_model_checkpoint
+    wandb.run.summary["final_model_path"] = str(final_path)
+
+    # Finish wandb run
+    wandb.finish()
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@ import re
 import json
 import math
 import torch
+import wandb
 import argparse
 import subprocess
 import numpy as np
@@ -379,7 +380,7 @@ def main():
     eval_every = 500
     max_eval_batches = 50
     max_length = 512
-    
+
     train_data_path = "spider_data/train_spider.json"
     dev_data_path = "spider_data/dev.json"
     table_path = "spider_data/tables.json"
@@ -388,13 +389,32 @@ def main():
     # Extract model name and create output directory with model name and batch size
     model_name = model_path.rstrip('/').split('/')[-1]
     output_dir = f"./trained_model_{model_name}_bs{batch_size}/"
-    
+
     # Create output directory
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
+
+    # Initialize wandb
+    wandb.init(
+        project="text-to-sql-training",
+        name=f"training_with_plan_{model_name}_bs{batch_size}",
+        config={
+            "model_name": model_name,
+            "batch_size": batch_size,
+            "gradient_accumulation_steps": gradient_accumulation_steps,
+            "effective_batch_size": batch_size * gradient_accumulation_steps,
+            "base_lr": base_lr,
+            "total_steps": total_steps,
+            "warmup_steps": warmup_steps,
+            "max_length": max_length,
+            "optimizer": "Adafactor",
+            "scheduler": "SlantedTriangular",
+            "training_type": "with_planning"
+        }
+    )
 
     # Load model and tokenizer
     model, tokenizer = load_model_and_tokenizer(model_path)
@@ -442,41 +462,61 @@ def main():
             batch = next(train_iter)
         
         loss, current_lr = train_step(
-            model, batch, optimizer, scheduler, device, 
+            model, batch, optimizer, scheduler, device,
             gradient_accumulation_steps, step
         )
         running_loss += loss
-        
+
         step += 1
         progress_bar.update(1)
         progress_bar.set_postfix({
             'loss': f'{loss:.4f}',
             'lr': f'{current_lr:.2e}'
         })
+
+        # Log training metrics to wandb
+        wandb.log({
+            "train/loss": loss,
+            "train/learning_rate": current_lr,
+            "train/step": step
+        }, step=step)
         
         # Evaluate
         if step % eval_every == 0:
             avg_train_loss = running_loss / eval_every
             eval_loss = evaluate(model, dev_dataloader, device, max_eval_batches)
-            
+
             print(f"\n{'='*70}")
             print(f"Step {step}/{total_steps}")
             print(f"Training Loss: {avg_train_loss:.4f}")
             print(f"Evaluation Loss: {eval_loss:.4f}")
             print(f"Learning Rate: {current_lr:.2e}")
             print(f"{'='*70}\n")
-            
+
+            # Log evaluation metrics to wandb
+            wandb.log({
+                "eval/loss": eval_loss,
+                "eval/avg_train_loss": avg_train_loss,
+                "eval/step": step
+            }, step=step)
+
             # Save best model
             if eval_loss < best_eval_loss:
                 best_eval_loss = eval_loss
                 print(f"New best evaluation loss! Saving model...")
-                
+
                 save_path = output_path / f"checkpoint_step_{step}"
                 save_path.mkdir(parents=True, exist_ok=True)
-                
-                model.save_pretrained(save_path)                
+
+                model.save_pretrained(save_path)
                 print(f"Model saved to {save_path}\n")
-            
+
+                # Log best model info to wandb
+                wandb.log({
+                    "best/eval_loss": best_eval_loss,
+                    "best/step": step
+                }, step=step)
+
             running_loss = 0.0
     
     progress_bar.close()
@@ -490,6 +530,14 @@ def main():
     tokenizer.save_pretrained(final_path)
     print(f"Final model saved to {final_path}")
     print(f"Best evaluation loss: {best_eval_loss:.4f}")
+
+    # Log final summary to wandb
+    wandb.run.summary["best_eval_loss"] = best_eval_loss
+    wandb.run.summary["total_steps"] = step
+    wandb.run.summary["final_model_path"] = str(final_path)
+
+    # Finish wandb run
+    wandb.finish()
 
 
 if __name__ == '__main__':

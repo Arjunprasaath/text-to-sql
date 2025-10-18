@@ -6,6 +6,7 @@ Used to replicate "Query-only" results from Table 2 of the paper.
 
 import json
 import torch
+import wandb
 import argparse
 from tqdm import tqdm
 from pathlib import Path
@@ -211,6 +212,26 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
+    # Initialize wandb
+    wandb.init(
+        project="text-to-sql-training",
+        name=f"query_only_{model_name}_bs{batch_size}",
+        config={
+            "model_name": model_name,
+            "batch_size": batch_size,
+            "gradient_accumulation_steps": gradient_accumulation_steps,
+            "effective_batch_size": batch_size * gradient_accumulation_steps,
+            "base_lr": base_lr,
+            "weight_decay": weight_decay,
+            "total_steps": total_steps,
+            "warmup_steps": warmup_steps,
+            "max_length": max_length,
+            "optimizer": "AdamW",
+            "scheduler": "cosine",
+            "training_type": "query_only"
+        }
+    )
+
     # Load model and tokenizer
     model, tokenizer = load_model_and_tokenizer(model_path)
 
@@ -279,6 +300,13 @@ def main():
             'lr': f'{current_lr:.2e}'
         })
 
+        # Log training metrics to wandb
+        wandb.log({
+            "train/loss": loss,
+            "train/learning_rate": current_lr,
+            "train/step": step
+        }, step=step)
+
         # Evaluate
         if step % eval_every == 0:
             avg_train_loss = running_loss / eval_every
@@ -291,6 +319,13 @@ def main():
             print(f"Learning Rate: {current_lr:.2e}")
             print(f"{'='*70}\n")
 
+            # Log evaluation metrics to wandb
+            wandb.log({
+                "eval/loss": eval_loss,
+                "eval/avg_train_loss": avg_train_loss,
+                "eval/step": step
+            }, step=step)
+
             # Save best model
             if eval_loss < best_eval_loss:
                 best_eval_loss = eval_loss
@@ -302,6 +337,12 @@ def main():
                 model.save_pretrained(save_path)
                 tokenizer.save_pretrained(save_path)
                 print(f"Model saved to {save_path}\n")
+
+                # Log best model info to wandb
+                wandb.log({
+                    "best/eval_loss": best_eval_loss,
+                    "best/step": step
+                }, step=step)
 
             running_loss = 0.0
 
@@ -316,6 +357,14 @@ def main():
     tokenizer.save_pretrained(final_path)
     print(f"Final model saved to {final_path}")
     print(f"Best evaluation loss: {best_eval_loss:.4f}")
+
+    # Log final summary to wandb
+    wandb.run.summary["best_eval_loss"] = best_eval_loss
+    wandb.run.summary["total_steps"] = step
+    wandb.run.summary["final_model_path"] = str(final_path)
+
+    # Finish wandb run
+    wandb.finish()
 
 
 if __name__ == '__main__':

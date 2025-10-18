@@ -6,6 +6,7 @@ Uses AdaFactor optimizer and Slanted Triangular Learning Rate scheduler.
 
 import json
 import torch
+import wandb
 import argparse
 from tqdm import tqdm
 from pathlib import Path
@@ -256,6 +257,28 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
+    # Initialize wandb
+    wandb.init(
+        project="text-to-sql-training",
+        name=f"query_only_adafactor_{model_name}_bs{batch_size}",
+        config={
+            "model_name": model_name,
+            "batch_size": batch_size,
+            "gradient_accumulation_steps": gradient_accumulation_steps,
+            "effective_batch_size": batch_size * gradient_accumulation_steps,
+            "base_lr": base_lr,
+            "total_steps": total_steps,
+            "cut_frac": cut_frac,
+            "ratio": ratio,
+            "max_length": max_length,
+            "optimizer": "Adafactor",
+            "scheduler": "SlantedTriangular",
+            "training_type": "query_only",
+            "early_stopping_patience": patience,
+            "early_stopping_min_delta": min_delta
+        }
+    )
+
     # Load model and tokenizer
     model, tokenizer = load_model_and_tokenizer(model_path)
 
@@ -335,6 +358,13 @@ def main():
             'lr': f'{current_lr:.2e}'
         })
 
+        # Log training metrics to wandb
+        wandb.log({
+            "train/loss": loss,
+            "train/learning_rate": current_lr,
+            "train/step": step
+        }, step=step)
+
         # Evaluate
         if step % eval_every == 0:
             avg_train_loss = running_loss / eval_every
@@ -346,6 +376,13 @@ def main():
             print(f"Training Loss: {avg_train_loss:.4f}")
             print(f"Evaluation Loss: {eval_loss:.4f}")
             print(f"Learning Rate: {current_lr:.2e}")
+
+            # Log evaluation metrics to wandb
+            wandb.log({
+                "eval/loss": eval_loss,
+                "eval/avg_train_loss": avg_train_loss,
+                "eval/step": step
+            }, step=step)
 
             # Check for improvement
             if eval_loss < best_eval_loss - min_delta:
@@ -360,15 +397,33 @@ def main():
                 model.save_pretrained(save_path)
                 tokenizer.save_pretrained(save_path)
                 print(f"Model saved to {save_path}")
+
+                # Log best model info to wandb
+                wandb.log({
+                    "best/eval_loss": best_eval_loss,
+                    "best/step": step,
+                    "best/improvement": improvement
+                }, step=step)
             else:
                 patience_counter += 1
                 print(f"No improvement (patience: {patience_counter}/{patience})")
+
+                # Log patience counter to wandb
+                wandb.log({
+                    "early_stopping/patience_counter": patience_counter
+                }, step=step)
 
                 # Early stopping
                 if patience_counter >= patience:
                     print(f"\nEarly stopping triggered at step {step}")
                     print(f"Best evaluation loss: {best_eval_loss:.4f}")
                     print(f"{'='*70}\n")
+
+                    # Log early stopping event to wandb
+                    wandb.log({
+                        "early_stopping/triggered": True,
+                        "early_stopping/stopped_at_step": step
+                    }, step=step)
                     break
 
             print(f"{'='*70}\n")
@@ -404,6 +459,15 @@ def main():
             }
         }, f, indent=2)
     print(f"Training history saved to {history_path}")
+
+    # Log final summary to wandb
+    wandb.run.summary["best_eval_loss"] = best_eval_loss
+    wandb.run.summary["total_steps"] = step
+    wandb.run.summary["final_model_path"] = str(final_path)
+    wandb.run.summary["training_history_path"] = str(history_path)
+
+    # Finish wandb run
+    wandb.finish()
 
 
 if __name__ == '__main__':
