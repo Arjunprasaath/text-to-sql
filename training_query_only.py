@@ -98,7 +98,7 @@ Question: {question}
 
         encodings = self.tokenizer(
             full_text,
-            truncation=True,
+            truncation=False,
             max_length=self.max_length,
             padding='max_length',
             return_tensors='pt'
@@ -108,7 +108,7 @@ Question: {question}
         # Mask prompt tokens (only train on response)
         prompt_encoding = self.tokenizer(
             prompt,
-            truncation=True,
+            truncation=False,
             max_length=self.max_length,
             padding='max_length',
             return_tensors='pt'
@@ -184,9 +184,9 @@ def evaluate(model, dataloader, device, max_eval_batches=None):
 
 def main():
     # Updated configuration with AdamW and Cosine scheduler
-    batch_size = 16  # Effective batch size of 64 with gradient accumulation
-    gradient_accumulation_steps = 32
-    base_lr = 5e-5  # Slightly lower LR for AdamW
+    batch_size = 32  # Effective batch size of 64 with gradient accumulation
+    gradient_accumulation_steps = 32 
+    base_lr = 1e-4  # Slightly lower LR for AdamW
     weight_decay = 0.01  # Add weight decay for regularization
     total_steps = 10000
     warmup_steps = 1000
@@ -198,7 +198,7 @@ def main():
     train_data_path = "spider_data/train_spider.json"
     dev_data_path = "spider_data/dev.json"
     table_path = "spider_data/tables.json"
-    model_path = "/projects/p32722/Models/Qwen2.5-1.5B-Instruct"  # Update this path
+    model_path = "/projects/p32722/Models/Qwen2.5-0.5B-Instruct"  # Update this path
 
     # Extract model name and create output directory with model name and batch size
     model_name = model_path.rstrip('/').split('/')[-1]
