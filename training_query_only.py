@@ -184,8 +184,8 @@ def evaluate(model, dataloader, device, max_eval_batches=None):
 
 def main():
     # Updated configuration with AdamW and Cosine scheduler
-    batch_size = 32  # Effective batch size of 64 with gradient accumulation
-    gradient_accumulation_steps = 16
+    batch_size = 16  # Effective batch size of 64 with gradient accumulation
+    gradient_accumulation_steps = 32
     base_lr = 5e-5  # Slightly lower LR for AdamW
     weight_decay = 0.01  # Add weight decay for regularization
     total_steps = 10000
@@ -198,7 +198,7 @@ def main():
     train_data_path = "spider_data/train_spider.json"
     dev_data_path = "spider_data/dev.json"
     table_path = "spider_data/tables.json"
-    model_path = "/projects/p32722/Models/Qwen2.5-0.5B-Instruct"  # Update this path
+    model_path = "/projects/p32722/Models/Qwen2.5-1.5B-Instruct"  # Update this path
     output_dir = "/projects/p32722/Models/text2sql/trained_model_query_only/"
 
     # Create output directory

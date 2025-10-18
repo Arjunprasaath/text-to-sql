@@ -256,6 +256,8 @@ python evaluation.py \
 
 python  spider/evaluation.py --gold dev_gold_test.sql --pred predictions/dev_prediction_Qwen2.5-7B-Instruct.txt --etype all --db spider_data/database --table spider_data/tables.json 
 
+# Test Eval
+python spider/evaluation.py   --gold spider_data/test_gold.sql   --pred predictions/query_only_unconstrained_predictions.txt   --etype all   --db spider_data/test_database   --table spider_data/test_tables.json 
 ```
 
 **Metrics**:

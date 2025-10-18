@@ -167,7 +167,7 @@ def main():
     # Configuration
     data_path = "spider_data/test.json"  # Use test set for final evaluation
     table_path = "spider_data/tables.json"
-    model_path = "./trained_model_query_only/checkpoint_step_5000"  # Best checkpoint
+    model_path = "/projects/p32722/Models/text2sql/trained_model_query_only/checkpoint_step_3500"  # Best checkpoint
     output_dir = "./predictions/"
     output_file = "query_only_unconstrained_predictions.txt"
 

@@ -138,7 +138,7 @@ def main():
     # Hyperparameters
     max_length = 512
     batch_size = 32
-    gradient_accumulation_steps = 4  # Effective batch size = 64
+    gradient_accumulation_steps = 8  # Effective batch size = 256
     learning_rate = 5e-5
     weight_decay = 0.01
     max_steps = 10000
