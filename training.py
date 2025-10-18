@@ -384,7 +384,10 @@ def main():
     dev_data_path = "spider_data/dev.json"
     table_path = "spider_data/tables.json"
     model_path = "/projects/p32722/Models/Qwen2.5-0.5B-Instruct"
-    output_dir = "./trained_model/"
+
+    # Extract model name and create output directory with model name and batch size
+    model_name = model_path.rstrip('/').split('/')[-1]
+    output_dir = f"./trained_model_{model_name}_bs{batch_size}/"
     
     # Create output directory
     output_path = Path(output_dir)

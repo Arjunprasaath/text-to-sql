@@ -199,29 +199,33 @@ def main():
     table_path = "spider_data/tables.json"
     output_dir = "./predictions/"
     pred_file = data_path.split('/')[-1][:-5] + "_prediction" # dev_prediction.txt
-    
+
     model_path = "/projects/p32722/Models/Qwen2.5-0.5B-Instruct"
+
+    # Extract model name for output file naming
+    model_name = model_path.rstrip('/').split('/')[-1]
 
     # Create output directory
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
-    
-    
+
+
     # Load dataset
     dataset = SpiderDataset(data_path, table_path)
-    
+
     # Create gold file
     # create_gold_file(dataset, gold_file)
-    
+
     # Load model and tokenizer
     model, tokenizer = load_model_and_tokenizer(model_path)
-    
+
     # Run inference
     predictions = run_inference(model, tokenizer, dataset, max_output_length, temperature)
     # print(predictions)
 
-    # Save predictions
-    save_predictions(predictions, output_dir + pred_file + '_' + model_path.split('/')[-1] + ".txt")
+    # Save predictions with model name
+    output_file_path = f"{output_dir}{pred_file}_{model_name}.txt"
+    save_predictions(predictions, output_file_path)
     
     print(f"\n{'='*60}")
     print("Benchmarking Complete!")

@@ -133,11 +133,14 @@ def main():
     dev_data_path = "spider_data/dev.json"
     table_path = "spider_data/tables.json"
     model_path = "/projects/p32722/Models/Qwen2.5-0.5B-Instruct"
-    output_dir = "/projects/p32722/Models/text2sql/trained_model_query_only_trainer/"
 
     # Hyperparameters
     max_length = 512
     batch_size = 32
+
+    # Extract model name and create output directory with model name and batch size
+    model_name = model_path.rstrip('/').split('/')[-1]
+    output_dir = f"/projects/p32722/Models/text2sql/trained_model_query_only_trainer_{model_name}_bs{batch_size}/"
     gradient_accumulation_steps = 8  # Effective batch size = 256
     learning_rate = 5e-5
     weight_decay = 0.01

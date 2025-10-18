@@ -199,7 +199,10 @@ def main():
     dev_data_path = "spider_data/dev.json"
     table_path = "spider_data/tables.json"
     model_path = "/projects/p32722/Models/Qwen2.5-1.5B-Instruct"  # Update this path
-    output_dir = "/projects/p32722/Models/text2sql/trained_model_query_only/"
+
+    # Extract model name and create output directory with model name and batch size
+    model_name = model_path.rstrip('/').split('/')[-1]
+    output_dir = f"/projects/p32722/Models/text2sql/trained_model_query_only_{model_name}_bs{batch_size}/"
 
     # Create output directory
     output_path = Path(output_dir)

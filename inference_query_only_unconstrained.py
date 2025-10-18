@@ -169,10 +169,13 @@ def main():
     table_path = "spider_data/tables.json"
     model_path = "/projects/p32722/Models/text2sql/trained_model_query_only/checkpoint_step_3500"  # Best checkpoint
     output_dir = "./predictions/"
-    output_file = "query_only_unconstrained_predictions.txt"
 
     beam_size = 4  # Standard beam search
     max_new_tokens = 200
+
+    # Extract model name and create output file name with model name
+    model_name = model_path.rstrip('/').split('/')[-1]
+    output_file = f"query_only_unconstrained_predictions_{model_name}.txt"
 
     # Create output directory
     output_path = Path(output_dir)
