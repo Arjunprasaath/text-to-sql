@@ -15,3 +15,5 @@ spider_data/
 trained_model/
 spider/
 *__pycache__/
+test-suite-sql-eval/
+wandb/

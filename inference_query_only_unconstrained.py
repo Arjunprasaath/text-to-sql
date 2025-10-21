@@ -35,8 +35,8 @@ class SpiderDataset:
 
     def _format_schema(self, db_schema):
         """Format database schema into string representation."""
-        table_names = db_schema['table_names']
-        column_names_info = db_schema['column_names']
+        table_names = db_schema['table_names_original']
+        column_names_info = db_schema['column_names_original']
 
         table_to_columns = {name: [] for name in table_names}
         for col_info in column_names_info:
@@ -167,11 +167,11 @@ def main():
     # Configuration
     data_path = "spider_data/test.json"  # Use test set for final evaluation
     table_path = "spider_data/tables.json"
-    model_path = "/projects/p32722/Models/text2sql/trained_model_query_only_Qwen2.5-0.5B-Instruct_bs32/checkpoint_step_3500"  # Best checkpoint
+    model_path = "/projects/p32722/Models/text2sql/trained_model_query_only_Qwen2.5-7B-Instruct_bs1/final_model_query_only_Qwen2.5-7B-Instruct"  # Best checkpoint
     output_dir = "./predictions/"
 
     beam_size = 4  # Standard beam search
-    max_new_tokens = 200
+    max_new_tokens = 2048
 
     # Extract model name and create output file name with model name
     model_name = model_path.rstrip('/').split('/')[-1]
@@ -204,8 +204,6 @@ def main():
     print("Query-only UNCONSTRAINED Inference Complete!")
     print(f"Predictions saved to: {save_path}")
     print(f"{'='*60}\n")
-    print("Next: Run Spider evaluation script to get EM and EX scores")
-    print("Expected (Qwen2-0.5B): EM ~64.9%, EX ~68.3%")
 
 
 if __name__ == "__main__":

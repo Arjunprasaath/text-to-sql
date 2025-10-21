@@ -42,8 +42,8 @@ class QueryOnlySpiderDataset(Dataset):
 
     def _format_schema(self, db_schema):
         """Format database schema into string representation."""
-        table_names = db_schema['table_names']
-        column_names_info = db_schema['column_names']
+        table_names = db_schema['table_names_original']
+        column_names_info = db_schema['column_names_original']
 
         table_to_columns = {name: [] for name in table_names}
         for col_info in column_names_info:
@@ -185,25 +185,25 @@ def evaluate(model, dataloader, device, max_eval_batches=None):
 
 def main():
     # Updated configuration with AdamW and Cosine scheduler
-    batch_size = 32  # Effective batch size of 64 with gradient accumulation
-    gradient_accumulation_steps = 32 
-    base_lr = 1e-4  # Slightly lower LR for AdamW
+    batch_size = 1  # Effective batch size of 64 with gradient accumulation
+    gradient_accumulation_steps = 128
+    base_lr = 1e-4
     weight_decay = 0.01  # Add weight decay for regularization
     total_steps = 10000
     warmup_steps = 1000
     eval_every = 500
-    max_eval_batches = 50
-    max_length = 512
+    max_eval_batches = 200
+    max_length = 2048
 
     # Paths (UPDATE THESE)
     train_data_path = "spider_data/train_spider.json"
     dev_data_path = "spider_data/dev.json"
     table_path = "spider_data/tables.json"
-    model_path = "/projects/p32722/Models/Qwen2.5-0.5B-Instruct"  # Update this path
+    model_path = "/projects/p32722/Models/Qwen2.5-7B-Instruct"  # Update this path
 
     # Extract model name and create output directory with model name and batch size
     model_name = model_path.rstrip('/').split('/')[-1]
-    output_dir = f"/projects/p32722/Models/text2sql/trained_model_query_only_{model_name}_bs{batch_size}/"
+    output_dir = f"/projects/p32722/Models/text2sql/trained_model_query_only_{model_name}_bs{batch_size}"
 
     # Create output directory
     output_path = Path(output_dir)
@@ -350,7 +350,7 @@ def main():
 
     # Final save
     print("\nTraining completed! Saving final model...")
-    final_path = output_path / "final_model_query_only" + model_path.split('/')[-1]
+    final_path = output_path / f"final_model_query_only_{model_path.split('/')[-1]}"
     final_path.mkdir(parents=True, exist_ok=True)
 
     model.save_pretrained(final_path)
